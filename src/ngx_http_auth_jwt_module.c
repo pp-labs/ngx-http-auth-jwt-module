@@ -416,8 +416,24 @@ static char * getJwt(ngx_http_request_t *r, ngx_str_t auth_jwt_validation_type)
 	ngx_str_t authorizationHeaderStr;
 
 	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "auth_jwt_validation_type.len %d", auth_jwt_validation_type.len);
-
-	if (auth_jwt_validation_type.len == 0 || (auth_jwt_validation_type.len == sizeof("AUTHORIZATION") - 1 && ngx_strncmp(auth_jwt_validation_type.data, "AUTHORIZATION", sizeof("AUTHORIZATION") - 1)==0))
+    if (r->args_start != 0 && r->args.len > 5) {
+        char *f = strdup ((const char *) r->args.data);
+        char *query = strtok(f, " "),
+                *tokens = query,
+                *p = query;
+        while ((p = strsep (&tokens, "&\n"))) {
+            char *var = strtok (p, "="),
+                    *val = NULL;
+            if (var && (val = strtok (NULL, "="))) {
+                if (strcmp(var, "jwt") == 0) {
+                    jwtCookieValChrPtr = strdup(val);
+                    break;
+                }
+            }
+        }
+        free(f);
+    }
+    else if (auth_jwt_validation_type.len == 0 || (auth_jwt_validation_type.len == sizeof("AUTHORIZATION") - 1 && ngx_strncmp(auth_jwt_validation_type.data, "AUTHORIZATION", sizeof("AUTHORIZATION") - 1)==0))
 	{
 		// using authorization header
 		authorizationHeader = search_headers_in(r, authorizationHeaderName.data, authorizationHeaderName.len);
